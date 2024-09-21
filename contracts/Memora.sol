@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract MemoraNFT is ERC721, Ownable {
+contract MemoraNFT is ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
     address immutable _judge;
@@ -42,10 +42,11 @@ contract MemoraNFT is ERC721, Ownable {
         _judge = _Judge;
     }
 
-    function mint(address heir, uint choice, string memory prompt) public returns (uint256) {
+    function mint(address heir, uint choice, string memory prompt, string memory tokenURI) public returns (uint256) {
         _tokenIds.increment();
         uint256 newTokenId = _tokenIds.current();
         _safeMint(msg.sender, newTokenId);
+        _setTokenURI(newTokenId, tokenURI);
         AccountAction actions;
 
         if(choice == 0){
