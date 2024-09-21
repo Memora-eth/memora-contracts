@@ -29,11 +29,13 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
         uint256 triggerTimestamp;
         uint256 balance;
         string uri;
+        uint256 farcasterID;
     }
 
     struct MinterData {
         uint256 tokenId;
         address minter;
+        uint256 fid;
     }
 
     mapping(uint256 => TokenInfo) public tokenInfo;
@@ -64,7 +66,8 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
         address heir,
         uint256 choice,
         string memory prompt,
-        string memory tokenURI
+        string memory tokenURI,
+        uint256 farcasterID
     ) public returns (uint256) {
         _tokenIds.increment();
         uint256 newTokenId = _tokenIds.current();
@@ -91,11 +94,18 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
             actions: actions,
             triggerTimestamp: 0,
             balance: 0,
-            uri: tokenURI
+            uri: tokenURI,
+            farcasterID: farcasterID
         });
 
         // Store the minter information
-        minterInfo.push(MinterData({tokenId: newTokenId, minter: msg.sender}));
+        minterInfo.push(
+            MinterData({
+                tokenId: newTokenId,
+                minter: msg.sender,
+                fid: farcasterID
+            })
+        );
 
         isMinter[msg.sender] = true;
 
@@ -152,7 +162,11 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
             (tokenInfo[tokenId].actions == AccountAction.CLOSE_ACCOUNT)
         ) {
             _burn(tokenId);
-            minterInfo[tokenId] = MinterData({tokenId: 0, minter: msg.sender});
+            minterInfo[tokenId] = MinterData({
+                tokenId: 0,
+                minter: msg.sender,
+                fid: tokenInfo[tokenId].farcasterID
+            });
         } else if (
             tokenInfo[tokenId].isTriggerDeclared &&
             tokenInfo[tokenId].isHeirSigned &&
