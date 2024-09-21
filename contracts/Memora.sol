@@ -10,6 +10,8 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
     Counters.Counter private _tokenIds;
     address immutable _judge;
 
+    uint256 _BUFFER_PERIOD = 5 minutes; // 5 minutes buffer
+
     enum AccountAction {
         MANAGE_ACCOUNT,
         CLOSE_ACCOUNT
@@ -23,6 +25,7 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
         address minter;
         string prompt;
         AccountAction actions;
+        uint256 triggerTimestamp; // New field to store the trigger timestamp
     }
 
     struct MinterData {
@@ -34,9 +37,11 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
     MinterData[] private minterInfo;
     mapping(address => bool) private isMinter;
 
-    event JudgeDeclaredDeceased(uint256 tokenId);
-    event HeirSigned(uint256 tokenId);
-    event NFTInherited(uint256 tokenId, address heir);
+    event JudgeDeclaredTriggered(uint256 indexed tokenId);
+    event HeirSigned(uint256 indexed tokenId);
+    event NFTInherited(uint256 indexed tokenId, address indexed heir);
+    event TriggerDisabled(uint256 indexed tokenId);
+    event BufferChanged(uint256 indexed bufferPeriod);
 
     constructor(
         string memory name,
@@ -72,7 +77,8 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
             isHeirSigned: false,
             minter: msg.sender,
             prompt: prompt,
-            actions: actions
+            actions: actions,
+            triggerTimestamp: 0 // Set default value to 0
         });
 
         // Store the minter information
@@ -93,8 +99,11 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
             "Already declared triggered"
         );
 
+        // Set trigger as declared and store the timestamp
         tokenInfo[tokenId].isTriggerDeclared = true;
-        emit JudgeDeclaredDeceased(tokenId);
+        tokenInfo[tokenId].triggerTimestamp = block.timestamp; // Store the timestamp
+        emit JudgeDeclaredTriggered(tokenId);
+        (tokenId);
     }
 
     function heirSign(uint256 tokenId) public {
@@ -104,9 +113,14 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
         );
         require(
             tokenInfo[tokenId].isTriggerDeclared,
-            "Judge hasn't declared deceased yet"
+            "Judge hasn't declared triggered yet"
         );
         require(!tokenInfo[tokenId].isHeirSigned, "Heir has already signed");
+        require(
+            block.timestamp >=
+                tokenInfo[tokenId].triggerTimestamp + _BUFFER_PERIOD,
+            "Buffer period has not passed yet" // Check if 5 minutes have passed
+        );
 
         tokenInfo[tokenId].isHeirSigned = true;
         emit HeirSigned(tokenId);
@@ -126,7 +140,7 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
         ) {
             _burn(tokenId);
             minterInfo[tokenId] = MinterData({tokenId: 0, minter: msg.sender});
-        } // handle edge case of token Id burned but the token owner is not removed from the list of owners
+        }
     }
 
     function getAllMinters() public view returns (MinterData[] memory) {
@@ -168,5 +182,29 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
         }
 
         return triggeredTokens;
+    }
+
+    function disableTrigger(uint256 tokenId) public {
+        require(
+            ownerOf(tokenId) == msg.sender,
+            "Only the token owner can disable the trigger"
+        );
+        require(
+            tokenInfo[tokenId].isTriggerDeclared,
+            "Trigger has not been declared yet"
+        );
+        require(!tokenInfo[tokenId].isHeirSigned, "Heir has already signed");
+
+        // Revert the trigger declaration
+        tokenInfo[tokenId].isTriggerDeclared = false;
+        tokenInfo[tokenId].triggerTimestamp = 0;
+
+        emit TriggerDisabled(tokenId);
+    }
+
+    function changeBuffer(uint256 _buffer_period) public onlyOwner {
+        _BUFFER_PERIOD = _buffer_period;
+
+        emit BufferChanged(_buffer_period);
     }
 }
