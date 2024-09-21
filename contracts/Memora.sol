@@ -207,4 +207,33 @@ contract MemoraNFT is ERC721URIStorage, Ownable {
 
         emit BufferChanged(_buffer_period);
     }
+
+    function getNFTsMintedByOwner(address owner)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256 mintedCount = 0;
+
+        // First, count how many NFTs were minted by this owner
+        for (uint256 i = 0; i < _tokenIds.current(); i++) {
+            if (tokenInfo[i + 1].minter == owner) {
+                mintedCount++;
+            }
+        }
+
+        // Create an array with the correct size
+        uint256[] memory mintedTokens = new uint256[](mintedCount);
+        uint256 index = 0;
+
+        // Populate the array with the token IDs minted by this owner
+        for (uint256 i = 0; i < _tokenIds.current(); i++) {
+            if (tokenInfo[i + 1].minter == owner) {
+                mintedTokens[index] = i + 1;
+                index++;
+            }
+        }
+
+        return mintedTokens;
+    }
 }
