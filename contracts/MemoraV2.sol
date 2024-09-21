@@ -317,4 +317,33 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         require(success, "Transfer failed");
     }
+
+    function getAllNFTsForHeir(address heir)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256 nftCount = 0;
+
+        // First, count how many NFTs are associated with the provided heir
+        for (uint256 i = 0; i < _tokenIds.current(); i++) {
+            if (tokenInfo[i + 1].heir == heir) {
+                nftCount++;
+            }
+        }
+
+        // Create an array to store the token IDs
+        uint256[] memory heirNFTs = new uint256[](nftCount);
+        uint256 index = 0;
+
+        // Populate the array with token IDs associated with the heir
+        for (uint256 i = 0; i < _tokenIds.current(); i++) {
+            if (tokenInfo[i + 1].heir == heir) {
+                heirNFTs[index] = i + 1;
+                index++;
+            }
+        }
+
+        return heirNFTs;
+    }
 }
