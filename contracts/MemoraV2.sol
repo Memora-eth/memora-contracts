@@ -191,11 +191,9 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
         return minterInfo;
     }
 
-    function getTriggeredNFTsForHeir(address heir)
-        public
-        view
-        returns (uint256[] memory)
-    {
+    function getTriggeredNFTsForHeir(
+        address heir
+    ) public view returns (uint256[] memory) {
         uint256 triggeredCount = 0;
 
         // First, count how many NFTs are triggered for this heir
@@ -252,11 +250,9 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
         emit BufferChanged(_buffer_period);
     }
 
-    function getNFTsMintedByOwner(address owner)
-        public
-        view
-        returns (uint256[] memory)
-    {
+    function getNFTsMintedByOwner(
+        address owner
+    ) public view returns (uint256[] memory) {
         uint256 mintedCount = 0;
 
         // First, count how many NFTs were minted by this owner
@@ -318,11 +314,9 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
         require(success, "Transfer failed");
     }
 
-    function getAllNFTsForHeir(address heir)
-        public
-        view
-        returns (uint256[] memory)
-    {
+    function getAllNFTsForHeir(
+        address heir
+    ) public view returns (uint256[] memory) {
         uint256 nftCount = 0;
 
         // First, count how many NFTs are associated with the provided heir
@@ -346,4 +340,40 @@ contract MemoraNFTV2 is ERC721URIStorage, Ownable {
 
         return heirNFTs;
     }
+
+    function getUnclaimedNFTs() public view returns (MinterData[] memory) {
+    uint256 unclaimedCount = 0;
+
+    // First, count how many NFTs are unclaimed (isTriggerDeclared is false and isHeirSigned is false)
+    for (uint256 i = 0; i < _tokenIds.current(); i++) {
+        if (
+            !tokenInfo[i + 1].isTriggerDeclared &&
+            !tokenInfo[i + 1].isHeirSigned
+        ) {
+            unclaimedCount++;
+        }
+    }
+
+    // Create an array to store the unclaimed MinterData
+    MinterData[] memory unclaimedMinters = new MinterData[](unclaimedCount);
+    uint256 index = 0;
+
+    // Populate the array with unclaimed MinterData
+    for (uint256 i = 0; i < _tokenIds.current(); i++) {
+        if (
+            !tokenInfo[i + 1].isTriggerDeclared &&
+            !tokenInfo[i + 1].isHeirSigned
+        ) {
+            unclaimedMinters[index] = MinterData({
+                tokenId: i + 1,
+                minter: tokenInfo[i + 1].minter,
+                fid: tokenInfo[i + 1].farcasterID
+            });
+            index++;
+        }
+    }
+
+    return unclaimedMinters;
+}
+
 }
